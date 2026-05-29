@@ -78,6 +78,7 @@ python3 ~/.codex/skills/tale_of_xxt/scripts/tale_of_xxt_workflow.py build-asr \
 ```
 
 6. Use `asr.md`, `summary_prompt.md`, and external lookups to write `coarse_summary_outline.md`.
+   Before writing the final prose, complete a name-audit pass for restaurants, bars, shops, venues, cultural works, beer/wine/liquor names, breweries, artists, authors, actors, directors, and other dense proper-noun clusters.
 
 ## Multi-Agent ASR
 
@@ -100,7 +101,7 @@ python3 ~/.codex/skills/tale_of_xxt/scripts/tale_of_xxt_workflow.py ranges \
 - If computing manually for `N` chunks and `K` agents, clamp `K <= N`. For agent `i`: `start = i * floor(N/K) + min(i, N % K)`, `size = floor(N/K) + (1 if i < N % K else 0)`, `end = start + size - 1`. Skip empty ranges.
 - Spawn one worker per range with `multi_agent_v1.spawn_agent`. Each worker must write to a unique file such as `asr_results/part_000_023.jsonl`.
 - Do not let multiple workers append to the same JSONL file.
-- While workers run, extract candidate proper nouns from the Douban description, title, shownotes, and obvious repeated ASR terms if available.
+- While workers run, extract candidate proper nouns from the Douban description, title, shownotes, and obvious repeated ASR terms if available. Treat short 2-4 character Chinese terms near restaurant, bar, cuisine, drink, film, book, music, or performance context as high-risk ASR candidates even when they look like common words or odd phrases.
 - Wait for workers, then run `validate-asr --input part_*.jsonl`.
 - If validation passes, run `build-asr --input part_*.jsonl`.
 - If `asr.md` has missing or failed chunks, retry only the failed ranges locally or with one extra worker.
@@ -161,6 +162,7 @@ Content rules:
 - The timeline summary should use coarse windows, not every 2-minute chunk. Merge adjacent chunks when they form one topic.
 - The outline must mark the earliest observed timestamp for each major topic.
 - Use structured text for parallel ideas: tables, flat bullet lists, grouped bullets, or short subsections.
+- Do not collapse restaurants, bars, venues, cultural works, alcohol names, breweries, or product names into generic phrases such as "multiple restaurants", "several films", or "various beers" when the ASR includes name-like evidence. List the names individually. If there are many, use grouped tables instead of prose compression.
 - Summarize and synthesize. Quote original wording only when it is necessary for a joke, phrase, or interpretive point.
 - Do not paste large ASR passages into the final answer.
 - Preserve uncertainty: if ASR and external sources conflict, state the inference basis.
@@ -168,9 +170,12 @@ Content rules:
 Proper noun rules:
 
 - First use Douban title, shownotes, episode description, and official single-episode metadata.
+- Maintain a `专名核对表` while writing. For each candidate entity include: earliest timestamp, ASR surface form, corrected or inferred name, category, lookup query/evidence, source link, and confidence (`确认` / `高置信推断` / `未确认`).
 - For restaurants, bars, shops, venues, breweries, and local place names, verify with Meituan, Dianping, maps, brand sites, or official accounts when possible.
 - For books, films, TV, music, podcasts, authors, actors, directors, and other cultural works or people, verify with Douban first when possible.
 - For beer names and breweries, use brand sites, ecommerce product pages, Untappd/RateBeer, or official social pages as cross-checks.
+- For short or phonetically ambiguous names, search the raw ASR phrase plus context anchors and likely homophones/near-homophones. Example patterns: `<ASR词> + 炉端烧/餐厅/城市`, `<拼音或近音> + 酒吧`, `<ASR词> + 豆瓣 + 电影/书/音乐`, `<ASR词> + Untappd/啤酒`. Do not ignore a short candidate merely because the ASR text forms a common word.
+- If a candidate cannot be confirmed, keep it in the output as an unresolved candidate with the timestamp and the failed lookup basis instead of deleting it or replacing it with a generic plural description.
 - Put source links in `## 外部校正参考`.
 
 ## Output Standard
