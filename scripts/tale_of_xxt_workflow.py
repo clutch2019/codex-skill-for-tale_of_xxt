@@ -25,6 +25,7 @@ DOUBAN_API = "https://www.douban.com/api/v2/folco/podcast_episode/{episode_id}"
 OPENROUTER_TRANSCRIPTIONS_URL = "https://openrouter.ai/api/v1/audio/transcriptions"
 OPENROUTER_ASR_MODEL = "qwen/qwen3-asr-flash-2026-02-10"
 DEFAULT_WINDOW_SECONDS = 120
+CANONICAL_HOST_NAMES = ["笑笑", "小李", "子豪", "嘻嘻", "阿坦", "家有双猫", "飞机"]
 
 
 class WorkflowError(RuntimeError):
@@ -559,6 +560,7 @@ def build_asr_markdown(args: argparse.Namespace) -> int:
 def make_summary_prompt(manifest: dict[str, Any], asr_path: Path) -> str:
     episode = manifest["episode"]
     description_html = str(episode.get("description_html") or "").strip()
+    host_names = "、".join(CANONICAL_HOST_NAMES)
     return f"""# tale_of_xxt 播客粗时间粒度总结任务
 
 输入文件：`{asr_path}`
@@ -575,6 +577,12 @@ def make_summary_prompt(manifest: dict[str, Any], asr_path: Path) -> str:
 8. 必须建立“专名核对表”，至少包含：最早时间、ASR 原始写法、校正/推断名称、类别、查询依据或外部证据、来源链接、置信度（确认/高置信推断/未确认）。未确认候选也要保留，不要删除。
 9. 对 2-4 个汉字的短名称或明显别扭的 ASR 词，必须按近音/同音和场景词触发外部对照。检索时组合原始 ASR、拼音或近音、城市/菜系/业态/作品类型等锚点，例如：“鱼酱 炉端烧”“yujiang 炉端烧”“鱼腥 餐厅”“鱼清 餐厅”“<ASR词> 豆瓣 电影”“<ASR词> Untappd 啤酒”。不要因为词短、像普通词、或 ASR 看似通顺就跳过。
 10. 如果 ASR 与外部来源冲突，先说明“推断依据”，不要把不确定内容写成确定事实。
+
+固定主播名：
+
+- 本播客主播名固定为：{host_names}。
+- 在 ASR 清理、时间线、大纲和最终总结中，必须保留以上标准写法；不要把它们误判为普通名词、称号、别名或近音词。
+- 如果 ASR 中出现这些主播名的疑似错写、漏字、近音或混淆写法，应统一校正为以上标准写法，并在“专名校正说明”中按需说明。
 
 豆瓣元数据：
 

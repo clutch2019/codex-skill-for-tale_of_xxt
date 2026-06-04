@@ -149,6 +149,11 @@ Expected files after ASR:
 
 Write the final output in Chinese unless the user asks otherwise.
 
+Canonical host names:
+
+- Treat these as fixed, known host names and preserve this exact spelling in ASR cleanup, timelines, outlines, and final summaries: `笑笑`、`小李`、`子豪`、`嘻嘻`、`阿坦`、`家有双猫`、`飞机`.
+- Do not reinterpret these names as ordinary nouns, aliases, titles, or near-homophones. If ASR produces a likely variant for one of these hosts, normalize it to the canonical spelling above and mention the correction in `专名校正说明` when relevant.
+
 Required sections:
 
 1. `# [episode title] 粗时间粒度总结与内容大纲`
